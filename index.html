@@ -2,7 +2,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Toy Race</title><style>
+<title>Toy Race Real</title><style>
 body {
   margin: 0;
   font-family: Arial;
@@ -11,56 +11,64 @@ body {
   text-align: center;
 }
 
-h1 {
-  margin-top: 20px;
+h1 { margin: 20px; }
+
+input {
+  margin: 10px;
 }
 
 button {
-  padding: 12px 20px;
-  font-size: 18px;
-  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
   border-radius: 10px;
+  border: none;
   background: orange;
-  color: black;
   cursor: pointer;
 }
 
-#game {
+#track {
   margin-top: 30px;
-}
-.car {
-  width: 50px;
-  height: 25px;
   position: relative;
-  margin: 10px;
+  height: 200px;
 }
-</style></head><body><h1>🏁 Toy Race</h1>
-<p>Sube tus carros (versión simple)</p><button onclick="startRace()">🚗 Iniciar carrera</button>
 
-<div id="game"></div><script>
-let cars = [
-  {name:"Rojo", color:"red", pos:0},
-  {name:"Azul", color:"blue", pos:0},
-  {name:"Verde", color:"lime", pos:0}
-];
+.car {
+  position: absolute;
+  width: 80px;
+  transition: left 0.1s;
+}
+</style></head><body><h1>🏁 Carrera con tus carros</h1><p>Sube fotos de tus carritos:</p>
+<input type="file" accept="image/*" multiple id="upload"><br>
+<button onclick="startRace()">Iniciar carrera</button><div id="track"></div><script>
+let cars = [];
+
+document.getElementById("upload").addEventListener("change", function(e) {
+  const files = e.target.files;
+  cars = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const url = URL.createObjectURL(files[i]);
+    cars.push({ img: url, pos: 0, top: i * 90 });
+  }
+
+  render();
+});
 
 function render() {
-  const game = document.getElementById("game");
-  game.innerHTML = "";
+  const track = document.getElementById("track");
+  track.innerHTML = "";
 
   cars.forEach(c => {
-    const div = document.createElement("div");
-    div.className = "car";
-    div.style.background = c.color;
-    div.style.left = c.pos + "%";
-    div.innerText = c.name;
-    game.appendChild(div);
+    const img = document.createElement("img");
+    img.src = c.img;
+    img.className = "car";
+    img.style.left = c.pos + "%";
+    img.style.top = c.top + "px";
+    track.appendChild(img);
   });
 }
 
 function startRace() {
-  cars.forEach(c => c.pos = 0);
-
   let interval = setInterval(() => {
     cars.forEach(c => {
       c.pos += Math.random() * 5;
@@ -71,11 +79,9 @@ function startRace() {
     let winner = cars.find(c => c.pos >= 90);
     if (winner) {
       clearInterval(interval);
-      alert("🏆 Ganó " + winner.name);
+      alert("🏆 Tenemos ganador!");
     }
   }, 100);
 }
-
-render();
 </script></body>
 </html>
