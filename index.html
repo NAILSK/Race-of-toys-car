@@ -1,0 +1,154 @@
+<!DOCTYPE html><html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Toy Race</title>
+<style>
+body{margin:0;background:#0b0b14;color:#fff;text-align:center;font-family:sans-serif}
+canvas{background:#111;border:2px solid #fff;margin-top:10px;touch-action:none}
+button{margin:6px;padding:10px 16px;font-size:16px;border-radius:10px;border:none;background:#ffb000}
+</style>
+</head>
+<body><h3>🏁 Tu carro real → Pixel → Carrera</h3><input type="file" id="upload" accept="image/*"><br>
+<button onclick="startGame()">Iniciar</button>
+
+<canvas id="game" width="320" height="520"></canvas>
+
+<p>Mueve el carro deslizando el dedo</p><script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = {x:140,y:420,img:null,w:48,h:48};
+let enemies = [];
+let roadOffset = 0;
+let running = false;
+
+// PIXELATE + RECORTE SIMPLE
+function pixelateAndCrop(img){
+  let s = 24;
+  let temp = document.createElement("canvas");
+  let tctx = temp.getContext("2d");
+  temp.width = s; temp.height = s;
+
+  // reducir
+  tctx.drawImage(img,0,0,s,s);
+
+  // eliminar fondo claro
+  let data = tctx.getImageData(0,0,s,s);
+  let p = data.data;
+  for(let i=0;i<p.length;i+=4){
+    if(p[i]>200 && p[i+1]>200 && p[i+2]>200){
+      p[i+3]=0;
+    }
+  }
+  tctx.putImageData(data,0,0);
+
+  // escalar sin suavizado
+  let final = document.createElement("canvas");
+  let fctx = final.getContext("2d");
+  final.width = 96;
+  final.height = 96;
+  fctx.imageSmoothingEnabled = false;
+  fctx.drawImage(temp,0,0,96,96);
+
+  let out = new Image();
+  out.src = final.toDataURL();
+  return out;
+}
+
+// CARGA DE IMAGEN
+document.getElementById("upload").onchange = e=>{
+  let file = e.target.files[0];
+  if(!file) return;
+  let img = new Image();
+  img.onload = ()=> player.img = pixelateAndCrop(img);
+  img.src = URL.createObjectURL(file);
+};
+
+// INICIO
+function startGame(){
+  if(!player.img){ alert("Sube una foto primero"); return; }
+  enemies = [];
+  for(let i=0;i<5;i++){
+    enemies.push({x:90+Math.random()*120,y:-i*140});
+  }
+  running = true;
+  loop();
+}
+
+// PISTA
+function drawRoad(){
+  ctx.fillStyle="#222";
+  ctx.fillRect(80,0,160,520);
+
+  ctx.strokeStyle="#fff";
+  ctx.lineWidth=2;
+
+  for(let i=0;i<12;i++){
+    ctx.beginPath();
+    ctx.moveTo(160,i*60+roadOffset);
+    ctx.lineTo(160,i*60+30+roadOffset);
+    ctx.stroke();
+  }
+
+  roadOffset += 6;
+  if(roadOffset>60) roadOffset=0;
+}
+
+// LOOP
+function loop(){
+  if(!running) return;
+  ctx.clearRect(0,0,320,520);
+
+  drawRoad();
+
+  // jugador
+  ctx.drawImage(player.img,player.x,player.y,player.w,player.h);
+
+  // enemigos
+  ctx.fillStyle="red";
+  enemies.forEach(e=>{
+    e.y += 5;
+    ctx.fillRect(e.x,e.y,40,40);
+
+    // colisión
+    if(Math.abs(e.x-player.x)<35 && Math.abs(e.y-player.y)<35){
+      running=false;
+      alert("💥 Perdiste");
+      location.reload();
+    }
+
+    if(e.y>520){
+      e.y=-120;
+      e.x=90+Math.random()*120;
+    }
+  });
+
+  requestAnimationFrame(loop);
+}
+
+// CONTROL TÁCTIL
+let touchX = null;
+
+canvas.addEventListener("touchstart", e=>{
+  touchX = e.touches[0].clientX;
+});
+
+canvas.addEventListener("touchmove", e=>{
+  if(touchX===null) return;
+  let currentX = e.touches[0].clientX;
+  let dx = currentX - touchX;
+  player.x += dx * 0.3;
+  player.x = Math.max(85, Math.min(235, player.x));
+  touchX = currentX;
+});
+
+canvas.addEventListener("touchend", ()=> touchX=null);
+
+// fallback botones (PC)
+window.addEventListener("keydown", e=>{
+  if(e.key==="ArrowLeft") player.x -= 15;
+  if(e.key==="ArrowRight") player.x += 15;
+});
+</script></body>
+</html>
