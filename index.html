@@ -1,0 +1,181 @@
+<!DOCTYPE html><html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Drag Racer</title><style>
+body{
+  margin:0;
+  background:#0b0b14;
+  color:white;
+  text-align:center;
+  font-family:sans-serif;
+}
+
+canvas{
+  background:#111;
+  border:2px solid white;
+  margin-top:10px;
+}
+
+button{
+  margin:5px;
+  padding:12px;
+  font-size:16px;
+  border-radius:10px;
+  border:none;
+}
+
+#gas{background:lime;color:black;}
+#shift{background:orange;color:black;}
+</style></head><body><h2>🏁 Pixel Drag Racer</h2><input type="file" id="upload" accept="image/*"><br>
+<button onclick="startRace()">Iniciar Carrera</button>
+
+<canvas id="game" width="400" height="200"></canvas>
+
+<br>
+<button id="gas" ontouchstart="gasOn()" ontouchend="gasOff()">ACELERAR</button>
+<button id="shift" onclick="shiftGear()">CAMBIAR MARCHA</button><script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = {x:20,y:120,img:null,speed:0,gear:1};
+let enemy  = {x:20,y:60,speed:0};
+
+let racing = false;
+let gas = false;
+
+// 🔥 PIXEL + QUITAR FONDO
+function processImage(img){
+  let temp = document.createElement("canvas");
+  let tctx = temp.getContext("2d");
+
+  let s = 32;
+  temp.width = s;
+  temp.height = s;
+
+  tctx.drawImage(img,0,0,s,s);
+
+  let data = tctx.getImageData(0,0,s,s);
+  let p = data.data;
+
+  for(let i=0;i<p.length;i+=4){
+    if(p[i]>200 && p[i+1]>200 && p[i+2]>200){
+      p[i+3]=0;
+    }
+  }
+
+  tctx.putImageData(data,0,0);
+
+  let final = document.createElement("canvas");
+  let fctx = final.getContext("2d");
+
+  final.width = 128;
+  final.height = 64;
+
+  fctx.imageSmoothingEnabled = false;
+  fctx.drawImage(temp,0,0,128,64);
+
+  let out = new Image();
+  out.src = final.toDataURL();
+  return out;
+}
+
+// cargar imagen
+document.getElementById("upload").onchange = e=>{
+  let file = e.target.files[0];
+  let img = new Image();
+  img.onload = ()=> player.img = processImage(img);
+  img.src = URL.createObjectURL(file);
+};
+
+// iniciar carrera
+function startRace(){
+  if(!player.img){
+    alert("Sube tu carro primero");
+    return;
+  }
+  player.x = 20;
+  enemy.x = 20;
+  player.speed = 0;
+  enemy.speed = 0;
+  player.gear = 1;
+  racing = true;
+  loop();
+}
+
+// física simple tipo drag
+function update(){
+  if(gas){
+    player.speed += 0.1 * player.gear;
+  } else {
+    player.speed *= 0.98;
+  }
+
+  // límite por marcha
+  let maxSpeed = player.gear * 4;
+  if(player.speed > maxSpeed){
+    player.speed *= 0.95; // perder potencia si no cambias
+  }
+
+  player.x += player.speed;
+
+  // enemigo automático
+  enemy.speed += 0.08;
+  enemy.x += enemy.speed;
+}
+
+// dibujar
+function draw(){
+  ctx.clearRect(0,0,400,200);
+
+  // pista
+  ctx.fillStyle="#333";
+  ctx.fillRect(0,80,400,80);
+
+  // meta
+  ctx.fillStyle="white";
+  ctx.fillRect(350,0,5,200);
+
+  // jugador
+  if(player.img){
+    ctx.drawImage(player.img,player.x,player.y,100,50);
+  }
+
+  // enemigo
+  ctx.fillStyle="red";
+  ctx.fillRect(enemy.x,enemy.y,80,40);
+}
+
+// loop
+function loop(){
+  if(!racing) return;
+
+  update();
+  draw();
+
+  if(player.x > 350){
+    alert("🏆 Ganaste!");
+    racing = false;
+    return;
+  }
+
+  if(enemy.x > 350){
+    alert("💀 Perdiste");
+    racing = false;
+    return;
+  }
+
+  requestAnimationFrame(loop);
+}
+
+// controles
+function gasOn(){ gas = true; }
+function gasOff(){ gas = false; }
+
+function shiftGear(){
+  if(player.gear < 5){
+    player.gear++;
+  }
+}
+</script></body>
+</html>
